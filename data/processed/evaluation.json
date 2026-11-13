@@ -1,0 +1,52 @@
+{
+  "rule_baseline": {
+    "entities": {
+      "DIAGNOSIS": {
+        "precision": 1.0,
+        "recall": 0.23333333333333334,
+        "f1": 0.37837837837837834
+      },
+      "DOSAGE": {
+        "precision": 0.45098039215686275,
+        "recall": 0.8518518518518519,
+        "f1": 0.5897435897435898
+      },
+      "FOLLOWUP": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "MEDICATION": {
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8
+      }
+    },
+    "json_validity_rate": 1.0
+  },
+  "trained_ner": {
+    "entities": {
+      "DIAGNOSIS": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "DOSAGE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "FOLLOWUP": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "MEDICATION": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "json_validity_rate": 1.0
+  }
+}

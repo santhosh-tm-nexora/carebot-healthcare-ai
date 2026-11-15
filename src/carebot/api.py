@@ -29,7 +29,6 @@ app = FastAPI(title="CareBot Healthcare AI", version="0.1.0")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
-
 @app.post("/summarize", response_model=ClinicalNote)
 def summarize(request: SummarizeRequest) -> ClinicalNote:
     return run(request.transcript, nlp=nlp)

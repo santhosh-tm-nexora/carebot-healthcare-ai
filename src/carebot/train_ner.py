@@ -12,9 +12,9 @@ def load_samples(path: str | Path) -> list[dict]:
         return [json.loads(line) for line in handle if line.strip()]
 
 
-def train(path, out_dir, epochs=30):
+def train(path, out_dir, epochs=30, dropout=0.2, seed=0):
     data = load_samples(path)
-    random.seed(0)
+    random.seed(seed)
     random.shuffle(data)
     split = int(0.8 * len(data))
     train_data, dev_data = data[:split], data[split:]
@@ -34,7 +34,7 @@ def train(path, out_dir, epochs=30):
         losses = {}
         for s in train_data:
             ex = Example.from_dict(nlp.make_doc(s["text"]), {"entities": s["entities"]})
-            nlp.update([ex], drop=0.2, sgd=opt, losses=losses)
+            nlp.update([ex], drop=dropout, sgd=opt, losses=losses)
         print(f"epoch {ep + 1}: loss {losses.get('ner', 0.0):.2f}")
     Path(out_dir).parent.mkdir(parents=True, exist_ok=True)
     nlp.to_disk(out_dir)

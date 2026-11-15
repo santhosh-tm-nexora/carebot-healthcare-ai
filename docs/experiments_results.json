@@ -1,0 +1,100 @@
+{
+  "ner": [
+    {
+      "run": "ner_config_1",
+      "epochs": 2,
+      "dropout": 0.1,
+      "entities": {
+        "DIAGNOSIS": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "DOSAGE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "FOLLOWUP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MEDICATION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "json_validity_rate": 1.0
+    },
+    {
+      "run": "ner_config_2",
+      "epochs": 3,
+      "dropout": 0.2,
+      "entities": {
+        "DIAGNOSIS": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "DOSAGE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "FOLLOWUP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MEDICATION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "json_validity_rate": 1.0
+    },
+    {
+      "run": "ner_config_3",
+      "epochs": 4,
+      "dropout": 0.4,
+      "entities": {
+        "DIAGNOSIS": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "DOSAGE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "FOLLOWUP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MEDICATION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "json_validity_rate": 1.0
+    }
+  ],
+  "summarization": [
+    {
+      "run": "summary_plain",
+      "faithfulness_rate": 1.0,
+      "summarizer": "template_fallback"
+    },
+    {
+      "run": "summary_entity_constrained",
+      "faithfulness_rate": 1.0,
+      "summarizer": "template_fallback"
+    }
+  ]
+}

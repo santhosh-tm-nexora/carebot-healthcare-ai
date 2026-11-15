@@ -26,7 +26,12 @@ notes and must not be interpreted as clinical performance.
 | Plain summary | unconstrained template fallback | n/a | 1.0000 |
 | Entity-constrained summary | extracted-entity template fallback | n/a | 1.0000 |
 
-No Anthropic API key was available for this experiment. Therefore the
-summarization comparison uses the repository's template fallback; an LLM
-comparison should be run separately when a key is available. The perfect NER
-scores are limited to synthetic generated notes.
+No Anthropic or Gemini API key was available for this experiment. Therefore
+the summarization comparison uses the repository's template fallback; no LLM
+provider was evaluated. The perfect NER scores are limited to synthetic
+generated notes.
+
+All three NER configurations tied at 1.0000 macro F1. Config 1 is selected as
+the best configuration because it achieves the tied best score with the fewest
+epochs (2) and lowest dropout (0.1), reducing training cost without a
+measured accuracy trade-off.

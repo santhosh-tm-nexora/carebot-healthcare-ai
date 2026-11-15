@@ -49,13 +49,28 @@ negation, or unseen medication names.
 
 ## Bias and safety audit
 
-The generated dataset samples source rows, and the source diagnosis classes
-are balanced at 100 rows each. This balance does not establish fairness:
+The trained NER was evaluated on the 30-note test split after grouping notes
+by the demographic attributes embedded in each generated transcript. Entity
+F1 is the macro average across `DIAGNOSIS`, `MEDICATION`, `DOSAGE`, and
+`FOLLOWUP`.
+
+| Attribute | Group | Notes | Entity F1 |
+|---|---|---:|---:|
+| Gender | F | 14 | 1.0000 |
+| Gender | M | 16 | 1.0000 |
+| Age band | <30 | 5 | 1.0000 |
+| Age band | 30-49 | 7 | 1.0000 |
+| Age band | 50-69 | 15 | 1.0000 |
+| Age band | 70+ | 3 | 1.0000 |
+
+All groups score 1.0000 in this run, which is expected because the notes are
+template-generated and the entity spans follow the same controlled phrasing
+used for training. This is not evidence of fairness or performance on real
+populations. The source diagnosis classes are balanced at 100 rows each, but
 gender, age, and other feature distributions were not audited against a real
-clinical population. No subgroup performance claims are made. Before any
-clinical use, the system would require de-identified representative notes,
-clinician review, subgroup precision/recall analysis, calibration, privacy
-controls, and a human approval workflow.
+clinical population. Before any clinical use, the system would require
+de-identified representative notes, clinician review, subgroup precision and
+recall analysis, calibration, privacy controls, and a human approval workflow.
 
 ## Deployment and monitoring
 

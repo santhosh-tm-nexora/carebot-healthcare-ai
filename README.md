@@ -86,6 +86,12 @@ set PYTHONPATH=src
 python scripts/demo.py
 ```
 
+Final submission documents:
+
+- [MODEL_CARD.md](MODEL_CARD.md)
+- [BIAS_AUDIT.md](BIAS_AUDIT.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ## Layout
 `src/carebot/` code · `data/raw/` provided data packs · `data/processed/` synthetic notes · `tests/` · `docs/` · `.github/workflows/ci.yml`
 

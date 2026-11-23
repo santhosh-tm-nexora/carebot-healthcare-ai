@@ -26,9 +26,9 @@ notes and must not be interpreted as clinical performance.
 | Plain summary | unconstrained template fallback | n/a | 1.0000 |
 | Entity-constrained summary | extracted-entity template fallback | n/a | 1.0000 |
 
-No Anthropic or Gemini API key was available for this experiment. Therefore
-the summarization comparison uses the repository's template fallback; no LLM
-provider was evaluated. The perfect NER scores are limited to synthetic
+No Groq API key or model was configured for this experiment. Therefore the
+summarization comparison uses the repository's template fallback; no external
+LLM provider was evaluated. The perfect NER scores are limited to synthetic
 generated notes.
 
 All three NER configurations tied at 1.0000 macro F1. Config 1 is selected as

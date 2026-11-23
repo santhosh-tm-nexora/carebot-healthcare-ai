@@ -7,6 +7,11 @@ transcript, extracts diagnosis, medication, dosage, and follow-up entities
 with spaCy, and returns validated `ClinicalNote` JSON with a short summary.
 The serving layer is FastAPI.
 
+Groq is the LLM provider for the entity-constrained summary stage. The
+provider is configured with the `GROQ_API_KEY` and `GROQ_MODEL` environment
+variables; missing configuration or request failures use the deterministic
+template summary instead.
+
 ## Intended use
 
 This project is for internship demonstration, software evaluation, and

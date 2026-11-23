@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareBot Realtime Clinical Note</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #f3f6fa; color: #172033; }
+    main { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
+    h1 { margin-bottom: 6px; }
+    .muted { color: #5d687b; }
+    .controls { display: flex; gap: 10px; align-items: center; margin: 24px 0; }
+    button { border: 0; border-radius: 8px; padding: 11px 16px; font-weight: 700; cursor: pointer; }
+    #start { background: #1769e0; color: white; }
+    #stop { background: #dce5f2; color: #172033; }
+    #confirm { background: #198754; color: white; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #status { font-weight: 600; }
+    #reprocess { background: #f59e0b; color: #172033; }
+    #stageList { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+    .stage { border-radius: 999px; padding: 7px 10px; background: #e8edf5; color: #657087; font-size: 13px; }
+    .stage.active { background: #1769e0; color: white; }
+    .stage.done { background: #198754; color: white; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    section { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 10px #17203312; }
+    pre { white-space: pre-wrap; min-height: 180px; margin-bottom: 0; }
+    textarea { width: 100%; min-height: 180px; box-sizing: border-box; resize: vertical; font: 13px monospace; }
+    #transcriptEditor { display: none; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Realtime Clinical Note</h1>
+    <p class="muted">Speak naturally. Review the extracted note before confirming it for the patient record.</p>
+    <div id="stageList" aria-label="Pipeline stages">
+      <span class="stage" data-stage="capture">1 Capture</span>
+      <span class="stage" data-stage="transcription">2 Transcription</span>
+      <span class="stage" data-stage="ner">3 NER</span>
+      <span class="stage" data-stage="llm">4 LLM summary</span>
+      <span class="stage" data-stage="validation">5 Validation</span>
+      <span class="stage" data-stage="review">6 Review</span>
+      <span class="stage" data-stage="confirmation">7 Confirm</span>
+    </div>
+    <div class="controls">
+      <button id="start">Start microphone</button>
+      <button id="stop" disabled>Stop</button>
+      <button id="reprocess" disabled>Reprocess transcript</button>
+      <button id="confirm" disabled>Confirm note</button>
+      <span id="status">Ready</span>
+    </div>
+    <div class="grid">
+      <section>
+        <h2>Live transcript</h2>
+        <pre id="transcript">No transcript yet.</pre>
+        <textarea id="transcriptEditor" aria-label="Corrected transcript"></textarea>
+      </section>
+      <section>
+        <h2>Clinical note</h2>
+        <pre id="note">No clinical note yet.</pre>
+        <textarea id="noteEditor" aria-label="Corrected clinical note"></textarea>
+      </section>
+    </div>
+  </main>
+  <script>
+    const startButton = document.querySelector("#start");
+    const stopButton = document.querySelector("#stop");
+    const reprocessButton = document.querySelector("#reprocess");
+    const confirmButton = document.querySelector("#confirm");
+    const status = document.querySelector("#status");
+    const transcriptView = document.querySelector("#transcript");
+    const noteView = document.querySelector("#note");
+    const transcriptEditor = document.querySelector("#transcriptEditor");
+    const noteEditor = document.querySelector("#noteEditor");
+    let socket;
+    let mediaRecorder;
+    let microphoneStream;
+    let currentNote;
+
+    function setStatus(message) { status.textContent = message; }
+
+    function setStage(activeStage) {
+      const order = ["capture", "transcription", "ner", "llm", "validation", "review", "confirmation"];
+      const activeIndex = order.indexOf(activeStage);
+      document.querySelectorAll(".stage").forEach((element) => {
+        const elementIndex = order.indexOf(element.dataset.stage);
+        element.classList.toggle("done", elementIndex >= 0 && elementIndex < activeIndex);
+        element.classList.toggle("active", element.dataset.stage === activeStage);
+      });
+    }
+
+    async function checkRealtimeStatus() {
+      try {
+        const response = await fetch("/realtime/status");
+        const result = await response.json();
+        if (!result.ready) {
+          startButton.disabled = true;
+          setStatus(result.message);
+        } else {
+          setStatus("Ready");
+        }
+      } catch (error) {
+        setStatus("Unable to check realtime transcription readiness");
+      }
+    }
+
+    function connect() {
+      return new Promise((resolve, reject) => {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        socket = new WebSocket(`${protocol}://${window.location.host}/ws/realtime`);
+        socket.onopen = () => {
+          socket.send(JSON.stringify({ type: "start" }));
+          resolve();
+        };
+        socket.onclose = () => setStatus("Connection closed");
+        socket.onerror = () => reject(new Error("Realtime connection failed"));
+        socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === "ready") setStatus("Recording");
+          if (message.type === "stage") {
+            setStage(message.stage);
+            setStatus(message.message);
+            if (message.transcript) transcriptView.textContent = message.transcript;
+          }
+          if (message.type === "clinical_note") {
+            currentNote = message.clinical_note;
+            transcriptView.textContent = message.transcript;
+            noteView.textContent = JSON.stringify(currentNote, null, 2);
+            transcriptEditor.value = message.transcript;
+            transcriptEditor.style.display = "block";
+            noteEditor.value = JSON.stringify(currentNote, null, 2);
+            noteEditor.style.display = "block";
+            confirmButton.disabled = !message.final;
+            reprocessButton.disabled = false;
+            setStatus(message.final ? "Review before confirmation" : "Processing");
+          }
+          if (message.type === "confirmed") {
+            if (message.transcript_corrected) {
+              transcriptView.textContent = transcriptEditor.value;
+              noteView.textContent = JSON.stringify(message.clinical_note, null, 2);
+              noteEditor.value = JSON.stringify(message.clinical_note, null, 2);
+              currentNote = message.clinical_note;
+            }
+            setStatus("Confirmed by clinician");
+            confirmButton.disabled = true;
+            setStage("confirmation");
+          }
+          if (message.type === "error") setStatus(message.message);
+        };
+      });
+    }
+
+    startButton.onclick = async () => {
+      if (!navigator.mediaDevices || !window.MediaRecorder) {
+        setStatus("This browser does not support microphone audio recording");
+        return;
+      }
+      try {
+        await connect();
+        microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const preferredType = MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+        mediaRecorder = preferredType
+          ? new MediaRecorder(microphoneStream, { mimeType: preferredType })
+          : new MediaRecorder(microphoneStream);
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+            socket.send(event.data);
+          }
+        };
+        mediaRecorder.onstop = () => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "stop" }));
+          }
+          microphoneStream.getTracks().forEach((track) => track.stop());
+          stopButton.disabled = true;
+          startButton.disabled = false;
+          setStatus("Transcribing audio");
+        };
+        mediaRecorder.start(1000);
+        setStage("capture");
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        confirmButton.disabled = true;
+        transcriptView.textContent = "Recording...";
+        noteView.textContent = "Waiting for transcript...";
+      } catch (error) {
+        setStatus(error.message || "Unable to start microphone");
+      }
+    };
+
+    stopButton.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+      stopButton.disabled = true;
+      setStatus("Finishing recording");
+    };
+
+    reprocessButton.onclick = () => {
+      const transcript = transcriptEditor.value.trim();
+      if (!transcript) {
+        setStatus("Corrected transcript cannot be empty");
+        return;
+      }
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        setStatus("Start a session before reprocessing");
+        return;
+      }
+      reprocessButton.disabled = true;
+      confirmButton.disabled = true;
+      setStatus("Reprocessing corrected transcript");
+      socket.send(JSON.stringify({ type: "reprocess", transcript }));
+    };
+
+    confirmButton.onclick = () => {
+      if (socket && socket.readyState === WebSocket.OPEN && currentNote) {
+        const correctedTranscript = transcriptEditor.value.trim();
+        if (!correctedTranscript) {
+          setStatus("Corrected transcript cannot be empty");
+          return;
+        }
+        let reviewedNote;
+        try {
+          reviewedNote = JSON.parse(noteEditor.value);
+        } catch (error) {
+          setStatus("Clinical note JSON is invalid");
+          return;
+        }
+        socket.send(JSON.stringify({
+          type: "confirm",
+          clinical_note: reviewedNote
+        }));
+      } else {
+        setStatus("Start a session and finish a transcript first");
+      }
+    };
+
+    window.addEventListener("beforeunload", () => {
+      if (socket && socket.readyState === WebSocket.OPEN) socket.close();
+    });
+
+    checkRealtimeStatus();
+  </script>
+</body>
+</html>

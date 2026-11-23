@@ -11,13 +11,19 @@ transcript -> preprocess -> NER (spaCy; rules now, custom model later) -> LLM su
 ## Quick start
 ```bash
 pip install -r requirements.txt
-export PYTHONPATH=src
+python -m pip install -e .
 echo "Pt c/o fever. Diagnosis: viral fever. Paracetamol 500 mg twice daily. Follow-up in 1 week." | python -m carebot.pipeline
 pytest
 ```
-No LLM provider was evaluated in the recorded experiments because no API key
-was configured. The pipeline therefore uses its deterministic template
-summarizer. Gemini support is not enabled by this repository version.
+Groq is the LLM provider for summarization. Set both variables to enable it;
+if either is missing or the request fails, the pipeline prints a redacted
+error and uses its deterministic template summarizer:
+
+PowerShell:
+```powershell
+$env:GROQ_API_KEY = "your-groq-api-key"
+$env:GROQ_MODEL = "your-groq-model"
+```
 
 ## Week 3 data pipeline
 
@@ -26,7 +32,7 @@ It contains tabular symptom/vital rows, not clinical transcripts. Generate
 fully synthetic notes and train the baseline NER model:
 
 ```bash
-set PYTHONPATH=src
+python -m pip install -e .
 python scripts/generate_data.py data/raw/aiml_healthcare_symptoms.csv data/processed
 python -m carebot.train_ner data/processed/train_notes.jsonl models/ner
 python scripts/run_eval.py models/ner data/processed/test_notes.jsonl
@@ -44,7 +50,7 @@ macro F1, JSON validity, and model artifacts to MLflow. It also compares plain
 and entity-constrained template summarization:
 
 ```bash
-set PYTHONPATH=src
+python -m pip install -e .
 python scripts/run_experiments.py data/processed/train_notes.jsonl data/processed/test_notes.jsonl models/experiments
 ```
 
@@ -52,11 +58,25 @@ Week 9 provides the FastAPI service, integration tests, and a 50-request
 concurrent benchmark:
 
 ```bash
-set PYTHONPATH=src
-uvicorn carebot.api:app --host 127.0.0.1 --port 8000
+python -m pip install -e .
+python -m uvicorn carebot.api:app --host 127.0.0.1 --port 8000
 pytest -q
 python scripts/load_test.py
 ```
+
+### Realtime doctor voice workflow
+
+Open `http://127.0.0.1:8000/app` after starting the service. The browser
+captures microphone audio with `MediaRecorder` and streams audio chunks over
+`/ws/realtime`. The server transcribes the recording with Groq Whisper,
+normalizes it, runs custom spaCy NER, creates the Groq patient-record summary,
+and requires clinician confirmation before the note is complete. Set
+`GROQ_API_KEY` and optionally `GROQ_STT_MODEL` to enable transcription.
+The existing `POST /summarize` endpoint remains available for text transcripts.
+
+Microphone access requires a supported browser and permission, and HTTPS
+is required outside localhost. The transcript is reviewed by a clinician;
+this prototype does not store confirmed notes.
 
 Week 12 provides the model card, bias audit, deployment guide, reproducible
 demo, and GitHub Actions CI:
